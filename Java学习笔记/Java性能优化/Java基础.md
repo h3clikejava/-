@@ -35,13 +35,34 @@ double pi = 3.14_15_92_6; // 3.1415926
 ```
 
 ### 布尔型
+
 Java中boolean类型的值只能是true或false，其他数据类型无法转换成布尔型。
 
+### 自动装箱
+
+基本数据类型都有对应的引用类型。不过这里有个Trick的点：
+
+```
+Integer a = 8;
+Integer b = 8;
+Integer c = new Integer(8);
+Integer d = 200;
+Integer e = 200;
+
+// a == b & a != c & d != e
+System.out.print((a == b) + "=" + (c == d));
+```
+
+究其原因是在Byte/Short/Integer/Long中，系统初始化的时候就生成了-128～127的缓存。取值在该范围的对象会直接返回缓存数据，因此内存地址相同。Char对象初始化的是0～127的缓存，其余数据类型没有缓存。但是new出来的对象单独存在于堆内存中，无法共用缓存数据。
+
 ---
-## Java随机数
+## 其他
+
+### Java随机数
+
 可以直接用Math.random()方法生成一个0～1之间的随机数。
 
-## 多变量赋值
+### 多变量赋值
 
 ```
 int a = 7, b = 7 , c = 7;
@@ -50,4 +71,48 @@ int d, e, f;
 d = e = f =8;
 ```
 
+### 初始化块
+
+初始化块分为静态初始化块和普通初始化块。static初始化块会在构造函数之前执行，且只会执行一次。普通初始化块也会在构造函数之前执行，但是每次调用构造函数之前都会执行。
+
+### 关键字strictfp/transient/volatile
+
+strictfp表示精确浮点，使类采用更精确的浮点计算方法。
+transient表示变量不会被持久化。
+volatile跨线程变量同步。
+
+### System/Runtime类
+
+System类表示当前Java程序运行的平台。Runtime类表示当前Java程序运行时环境。
+
+跟System.gc()一样，也存在Runtime.getRuntime().gc()方法，实际上System.gc()就是调用的Runtime.gc()方法。
+
+通过System.getevn()方法可以获取当前系统的平台环境变量；通过System.getProperties()方法可以获取当前系统属性。例如：
+
+```
+// 通过该方法可以获得浏览器UA
+// Dalvik/2.1.0 (Linux; U; Android 7.0; SM-G9350 Build/NRD90M)
+System.getProperty("http.agent")
+```
+
+通过Runtime可以获得JVM相关信息，如CPU数量，内存信息。
+
+```
+// 获得CPU个数
+Runtime.getRuntime().availableProcessors();
+// 获得已使用内存大小
+Runtime.getRuntime().totalMemory();
+// 获得剩余内存大小
+Runtime.getRuntime().freeMemory();
+// 获得总内存大小
+Runtime.getRuntime().maxMemory();
+```
+
+通过以上这个例子，我们发现freeM总是很小，原因是Java程序只有当内存不够用的时候才会向内存申请内存，totalM是已经占用的内存，freeM是申请到还没用到的内存，因此占用内存大小是totalM+freeM<maxM，当超过maxM的时候就会报OOM。在Android上一个App最大可用内存大小是**512M**。
+
+Runtime还可以单独启动一个进程来执行控制台命令：
+
+```
+Runtime.getRuntime().exec("notepad.exe");
+```
 
