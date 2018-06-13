@@ -1,6 +1,147 @@
 # Java多线程
 
-## synchronized与volatile
+## 进程和线程
+操作系统中每个程序就是一个进程，当一个程序运行时包含多个顺序执行流，每个顺序执行流就是一个线程。
+
+`操作系统可以同时执行多个任务，这个任务就是进程；而进程可以同时执行多个任务，这个任务就是线程。`
+
+`进程是操作系统中资源的组织单位，线程是CPU调度的基本单位。`
+
+### 进程有三个特性：
+
+* **独立性**：进程是系统中独立存在的实体，拥有独立的资源和地址空间。
+* **动态性**：进程与程序的区别在于，程序是静态的指令集合，而进程是正在系统中活动的指令集合，具有时间的概念。
+* **并发性**：多个进程可以在单个处理器上并发执行，相互没有影响。
+
+多线程扩展了进程的概念，使得同一个进程可以同时并发处理多个任务。
+
+* 进程间不能共享内存，但是线程之间很容易共享内存
+* 系统创建进程需要重新为其分配资源，而创建线程代价很小，因此多线程处理并发效率比多进程处理效率高。
+
+### 值的可见性
+
+在单线程应用中如果对一个值进行写操作，接下来再进行读操作，那么所读到的值就是上次写入的值，也就说前面的操作对后面是可见的。但是在多线程当中就不一样了，如果不使用同步机制，那么就不能保证一个线程写入的值对另一个线程可见。造成这个问题原因有：
+
+* CPU内部缓存：CPU直接操作的是缓存中的数据，并在需要的时候会把缓存数据和主存数据同步。因此在某些时刻缓存数据可能和主存数据不一致。
+* CPU的执行执行排序：某些时候CPU的执行顺序是不确定的，导致部分需要后运行的线程却读到了较早的值。
+* 编译器代码重排：出于性能优化的目的，编译器可能在编译的时候对生成的目标代码进行重新排列。
+
+### 线程创建的方式有三种：
+
+1. 继承Thread类
+2. 实现Runnable接口
+3. 使用Callable和Future
+
+### Callable和Future
+
+Callable提供了一个call()方法来执行线程，但是它比run()方法更强大，它可以有**返回值**，可以**声明抛出异常**。当执行get()方法的时候会阻塞线程直到线程执行完毕。
+
+```
+class MyCallable implements Callable<Integer> {
+    @Override
+    public Integer call() throws Exception {
+        Print("IN:" + Thread.currentThread().getName());
+        Thread.sleep(20-000);
+        return 3;
+    }
+}
+
+public void test() {
+    FutureTask<Integer> ft = new FutureTask(new MyCallable());
+    new Thread(ft).start();
+    // 注意ft.get()会阻塞线程
+    Print("FT:" + ft.get() + "="  + Thread.currentThread().getName());
+}
+```
+
+### 线程的生命周期
+
+线程的生命周期有五种状态：
+
+新建（New）- 就绪（Runnable）- 运行（Running）- 阻塞（Blocked）- 死亡（Dead）
+
+当线程调用new的时候就进入到了新建状态；当调用start方法后进入就绪状态，JVM会为其创建方法调用栈和程序计数器，处于这个状态的的线程并没有开始运行，只是表示线程准备就绪了，至于什么时候开始运行取决于JVM的调度。
+
+### join()
+
+join方法会阻塞当前线程以等待其他线程完成。
+
+```
+class MyThread() extends Thread {
+    public void run() {
+        System.out.println("IN");
+        Thread.sleep(3000);
+    }
+}
+
+public void test() {
+    MyThread t = new MyThread();
+    t.start();
+    // join会阻塞当前线程，直到MyThread执行完成。
+    t.join();
+}
+```
+
+### yield() 让步
+
+yield()和sleep()作用一样，但是sleep会阻塞线程，而yield方法不会，它会让线程进入就绪状态。
+
+* 另外sleep方法暂停线程后会给其他线程执行机会，而不理会其他线程优先级。而yield方法只会给优先级相同或优先级更高的线程执行机会。
+* sleep会将线程转入阻塞状态，知道经过阻塞时间才会将线程转入就绪状态。而yield不会进入阻塞状态，会直接进入就绪状态，因此完全可能调用yield方法之后，立即获得处理器资源而被执行。
+* yield无需声明抛出任何异常
+
+### interrupt() 中断
+
+通过调用某个线程的interrupt方法可以让正在阻塞的线程停止阻塞，并且抛出interruptedException。
+
+### suspend()/stop()/resume()
+
+早期Java定义了stop方法来终止一个线程，suspend来阻塞线程，resume来恢复线程，但是在JDK1.2中就废弃了，因为他们是不安全的。
+
+举个例子，比如A给B转账500块钱，如果在A扣掉500块钱的时候线程被stop了，那么最终A账号少了500块钱，而B没有收到钱。因此stop方法不安全。
+
+而suspend会造成死锁，比如A获得某个锁之后调用了suspend被阻塞了，而B需要获得该锁才能调用resume，就会因为一直无法获得锁导致死锁。
+
+### 优先级
+
+通过setPriority(int value)方法可以设定优先级，取值范围在1～10之间。系统也提供了3个静态常量：
+
+* MAX_PRIORITY:10
+* MIN_PRIORITY:1
+* NORM_PRIORITY:5
+
+`Java线程优先级需要依靠操作系统实现，但是并不是所有操作系统都支持10级的优先级，建议开发过程中只使用系统默认提供的三种优先级。`
+
+### DaemonThread守护线程
+
+特性：如果前台线程都死亡，守护线程会自动死亡
+
+通过setDaemon(true)方法，可以将一个普通线程变成守护线程，这个方法需要在start()方法之前调用。
+
+## 线程池
+
+线程池的优点在于：
+
+1. 降低资源消耗
+2. 提高响应速度
+3. 提高线程可管理性
+
+## synchronized/volatile/ThreadLocal
+
+同步锁仅存在多线程同时调用的情况下才会有锁，如果是单线程执行，同步锁是不起作用的。
+
+```
+// 该例子中是单线程执行，因此同步锁递归不会产生死锁
+public static void main(String[] arg) {
+    this.x();
+}
+
+synchronized public void x() {
+    System.out.println("X");
+    Thread.sleep(1000);
+    x();
+}
+```
 
 synchronized保证可见性和原子性，而volatile只保证可见性不保证同步，且不会阻塞，所以volatile不是线程安全的。volatile轻量级，只能修饰变量。synchronized重量级，还可修饰方法。
 
@@ -44,15 +185,19 @@ static class X implements Runnable {
 }
 ```
 
+volatile的意思就是在线程准备读取该值的时候不从CPU缓存中读取，而从主存中读取；而写入的时候也直接写入主存。
+
+与volatile作用相反的还有ThreadLocal对象，该对象会在线程内独立维护一个变量，而保证线程之间修改互不影响。
+
 ## 原子变量 Atomic*
 
 原子变量是比synchronized效率更高的同步操作。
 
 ## wait()/notify()与notifyAll()
 
-wait()/notify()和notifyAll()方法都只能执行在锁块内。
+wait()/notify()和notifyAll()方法都只能执行在锁块内，与synchronized配合使用。
 
-wait()方法不会持有线程，而notify()和notifyAll()方法都会继续持有线程。意思就是说肯能由于调用了notify方法，但是仍然在执行其他任务导致锁并没有释放，因此wait的线程也并不会继续执行。需要等notify的锁释放为止。当然也可以调用notify之后直接调用wait方法释放锁，但是notify线程会被阻塞，又需要wait的线程再次调用notify方法才行。
+wait()方法不会持有线程，而notify()和notifyAll()方法都会继续持有线程。意思就是说肯能由于调用了notify方法，但是仍然在执行其他任务导致锁并没有释放，因此wait的线程也并不会继续执行。需要等notify的锁释放为止。当然也可以调用notify之后直接调用wait方法释放锁，但是notify线程会被阻塞，又需要wait的线程再次调用notify方法才行。另外wait方法通常和while循环配合使用以检查条件是否满足。
 
 ```
 final Object obj = new Object();
@@ -138,6 +283,52 @@ public void test() {
         // 区别在于释放的线程执行完毕之后还会不会唤醒其他线程
         obj.notify();
 //      obj.notifyAll();
+    }
+}
+```
+
+## Lock 锁
+
+Lock相比synchronized更加灵活。
+
+```
+Lock lock = new ReentrantLock();
+lock.lock();
+// 最好写在finally中，否则容易造成死锁
+lock.unlock():
+```
+
+|类别|synchronized|Lock|
+|---|------------|----|
+|存在层次|Java关键字，在JVM层面|是一个类|
+|锁的释放|1. 执行完同步代码自动释放<br>2. 线程执行发生异常|必须手动释放|
+|锁状态|无法判断|可判断|
+|性能|高|轻量|
+
+### Condition
+在Lock中无法使用wait/notify/notifyAll方法，系统提供了Condition类来实现相关功能，它对应有await/signal/signalAll三个方法。
+
+```
+Lock lock = new ReentrantLock();
+Condition condition = lock.newCondition();
+```
+
+### 公平锁/非公平锁
+
+公平锁的意思就是线程等待的时间越长，越早获得执行的机会；而非公平锁则是忽略线程创建时间，任何线程都是在同一条件下抢占执行机会。
+
+Lock的实现ReentrantLock默认采用的是非公平锁，可以通过传入参数实现公平锁。
+
+```
+public ReentrantLock() {
+    sync = new NonFairSync();
+}
+
+public ReentrantLock(boolean fair) {
+    if(fair) {
+        sync = new FairSync();
+    } else {
+        this();
     }
 }
 ```
@@ -633,4 +824,32 @@ public class Test {
 工人7释放出机器
 工人6释放出机器
 ```
+
+## BlockingQueue 阻塞队列
+
+往阻塞队列中插入元素的时候，如果该队列已满，则该线程被阻塞；当取出原色的时候，队列为空，线程也会被阻塞。
+
+* 插入元素：add()/offer()/put()，当队列已满的时候执行操作分别会抛出异常、返回false、阻塞队列。
+* 取出并删除元素：remove()/poll()/take()，当队列为空的时候执行操作分别会抛出异常，返回false，阻塞队列。
+* 取出不删除元素：element()/peek()，当队列为空的时候分别会抛出异常，返回false。
+
+## 悲观锁和乐观锁
+
+悲观锁（Pessimistic Locking）：它对外界所有的操作都持保守态度，总是假设最坏的情况，任何操作都会让数据处于锁定状态。synchronized就是典型的悲观锁。
+
+乐观锁（Optimistic Locking）：它对外界所有操作都持乐观态度，在读操作的时候不会对对象加锁，只有在写的情况下才会查询一下修改数据期间有没有其他对象对数据进行了修改。Java原子操作就是典型的乐观锁。乐观锁是通过“CAS（Compare and Swap）对比和交换”算法实现。
+
+用文字的方式简单的描述一下几种锁的差别：
+
+应用场景为某银行账号下有10元钱，有A、B、C三个用户执行取钱行为。
+
+* 不加锁：当A、B、C三个用户同时请求到10元钱，并执行取钱行为，各取10块钱，最后很大概率会导致账号余额错误。
+* 悲观锁：每个用户取钱的时候必须等待上一个用户取钱结束。
+* 乐观锁：还是同样取钱，但是会有一个值来表示修改次数，假设这个value默认是0，当A取完钱之后value等于1并写入；当B取完钱之后写入的时候会读这个值，如果value是0，就写入并将value改为1，但是当发现value不是0的时候就会重新读账户余额，将自己的value临时改为1，并重新计算可否取钱，并将value改为2之后再去尝试能否写入。
+
+在大多数情况下悲观锁比乐观锁更消耗系统性能，而且等待锁的线程会被阻塞。乐观锁会出现脏读的情况，但是不会阻塞线程。
+
+## 脏数据
+
+脏数据也称脏读，当一个事务正在访问数据库，并做了修改，而这个数据还没有同步到数据库中。另外个事务也访问并使用了这个数据，那么这个数据就是同步前的数据，即脏数据（Dirty Data）。该数据可能回导致操作结果出现错误。
 

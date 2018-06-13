@@ -55,6 +55,21 @@ System.out.print((a == b) + "=" + (c == d));
 
 究其原因是在Byte/Short/Integer/Long中，系统初始化的时候就生成了-128～127的缓存。取值在该范围的对象会直接返回缓存数据，因此内存地址相同。Char对象初始化的是0～127的缓存，其余数据类型没有缓存。但是new出来的对象单独存在于堆内存中，无法共用缓存数据。
 
+## 访问限制符 AccessSpecifier
+
+| 限制符 | 同类 | 同包 | 子类 | 不同包 |
+|-------|-----|-----|------|-------|
+|public |Y    |Y    |Y     |Y      |
+|protected|Y  |Y    |Y     |N      |
+|friendly|Y   |Y    |N     |N      |
+|private|Y    |N    |N     |N      |
+
+## RandomAccessFile
+
+支持文件的随机访问读写，它把文件看作一个大型**byte数组**，通过seek或skipByte方法移动到任意位置读写数据。它提供了按字节读取文件或写文件的能力，通常用作大文件读写，或用作临时快速读取文件某部分内容。
+
+seek()绝对位置移动/skipByte()相对位置移动。
+
 ---
 ## 其他
 
@@ -73,13 +88,119 @@ d = e = f =8;
 
 ### 初始化块
 
-初始化块分为静态初始化块和普通初始化块。static初始化块会在构造函数之前执行，且只会执行一次。普通初始化块也会在构造函数之前执行，但是每次调用构造函数之前都会执行。
+初始化块分为静态初始化块和普通初始化块。static初始化块会在构造函数之前执行，且只会执行一次。普通初始化块也会在构造函数之前执行，但是每次调用构造函数之前都会执行。特别注意，非静态代码块是紧跟着构造函数执行的，中间不会插其他代码。
 
-### 关键字strictfp/transient/volatile
+```
+public class A {
+    static {
+        print("父类静态代码块");
+    }
+    
+    public A() {
+        print("父类构造函数");
+    }
+    
+    {
+        print("父类非静态代码块");
+    }
+}
 
-strictfp表示精确浮点，使类采用更精确的浮点计算方法。
-transient表示变量不会被持久化。
-volatile跨线程变量同步。
+public class B extends A {
+    public static void main(String[] args) {
+        print("main方法");
+        B b = new B();
+    }
+
+    static {
+        print("子类静态代码块");
+    }
+    
+    public B() {
+        print("子类构造函数");
+    }
+    
+    {
+        print("子类非静态代码块");
+    }
+}
+
+// 输出顺序
+// 父类静态代码块
+// 子类静态代码块
+// main方法
+// 父类非静态代码块
+// 父类构造函数
+// 子类非静态代码块
+// 子类构造函数
+```
+
+这个例子要特别仔细，首先由于Main方法写在B类中，因此程序执行的时候一定会**先调用静态代码块**，而不是main函数；其次非静态代码块的执行是**贴着构造函数**的，因此父类构造函数执行完毕了之后才会执行子类的非静态代码块。
+
+`如果是直接调用的父类静态成员变量，那么子类是不会被初始化的，即便存在静态代码块`
+
+```
+class A {
+    static int a = 100;
+    static {
+        print("static A");
+    }
+}
+
+class B extends A {
+    static {
+        print("static B");
+    }
+}
+
+class C {
+    public static void main(String[] args) {
+        print("main函数");
+        print(B.a);
+    }
+}
+
+// 输出顺序
+// main函数
+// Static A
+// 100
+```
+
+`类作为数组时候，也不会触发初始化；访问常量也不会触发初始化。`
+
+```
+public class A {
+    public static final String color = "red";//新增一段常量，编译阶段户直接放入常量池
+    static {
+        print("A");
+    }
+}
+
+public class B {
+    public static void main(String[] args) {
+        A[] a = new A[5];
+        print(A.color);
+    }
+}
+
+// 不会触发A类初始化
+```
+
+### label 语句
+
+label提供了控制多层循环的方法，可与break或continue配合使用。一般是在某个循环体前加上标号，在break或continue后使用该标号，从而控制循环。例如下面这个例子可以用break直接跳出两层循环。
+
+```
+other: for(int i = 0; i < 10; i++) {
+    for(int j = 0; j < 10; j++) {
+        if(i > j) break other;
+    }
+}
+```
+
+### 关键字strictfp/transient
+
+**strictfp**表示精确浮点，使类采用更精确的浮点计算方法。
+**transient**表示变量不会被持久化。
 
 ### System/Runtime类
 
@@ -115,4 +236,58 @@ Runtime还可以单独启动一个进程来执行控制台命令：
 ```
 Runtime.getRuntime().exec("notepad.exe");
 ```
+
+### 局部内部类
+
+常见的内部类有内部类、静态内部类、匿名内部类。其实还存在一种更为隐蔽的局部内部类：
+
+```
+void myMethod() {
+    class LocalInnerClass {
+        ...
+    }
+}
+```
+
+以上示例中LocalInnerClass类仅供myMehtod方法访问。
+
+### 接口的继承
+
+接口可以继承其他接口的常量和方法，而且支持多继承。
+
+```
+interface A {
+    int YES = 1;
+    int NO = 2;
+    a();
+}
+
+interface B {
+    int SUMMER = 3;
+    int WINTER = 4;
+    b();
+}
+
+interface c extends A, B {
+    c();
+}
+```
+
+### 接口的默认方法
+
+实际开发中会遇到一种情况，如果想要在旧的接口文件中加一个方法，那么所有该接口的实现类都需要修改。在**JAVA8**中，允许在接口中定义一个默认方法，让实现类可以不用实现该方法，类似于抽象类中的方法。
+
+```
+interface MyInterface {
+    void a();
+    default String getMyName() {
+        return "H3c";
+    }
+}
+```
+
+当一个类需要实现MyInterface接口时，必须实现a()方法，但是他可以选择是否重写getMyName()方法，即使不重写也可以正常调用getMyName()方法。
+
+
+
 
