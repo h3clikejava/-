@@ -1,4 +1,4 @@
-# Java API调优 【集合类】
+# Java集合类
 
 Java集合大致可分为Set、List、Map、Queue四种体系。而集合类主要又由Collection和Map两个接口派生。
 
@@ -7,41 +7,6 @@ Java集合大致可分为Set、List、Map、Queue四种体系。而集合类主�
 Map体系继承树
 
 ![Map体系继承树](https://github.com/h3clikejava/H3cStudyDiary/blob/master/Java%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Photos/Map%E4%BD%93%E7%B3%BB%E7%BB%A7%E6%89%BF%E6%A0%91.png?raw=true)
-
-
-## 集合内部避免返回Null
-
-当一个函数需要返回数组或集合的时候，要避免直接返回Null。这里并不是说不能返回Null，而是返回Null之后需要判空，否则会抛出空指针异常。这样做只是为了让代码更美观简洁。
-有的人会认为返回一个空数组或空集合需要花费时间和空间，其实可以使用公用对象来减少性能影响。
-自己写的接口尽量遵循这个规范，并在接口说明中标明。
-
-```
-public String[] getBooks() {
-    if(book.size() == 0)
-        // 不建议用这样的返回
-        return null;
-    ...
-}
-
-private static final String[] NULL = new String[0];
-public String[] getBooks2() {
-    if(book.size() == 0) 
-        return NULL;
-    ...
-}
-public List<String> getBooks3() {
-    if(book.size() == 0) 
-        return Collections.emptyList();
-        // Collections.emptyMap()
-        // Collections.emptySet();
-    ...
-}
-```
-
-**特别注意：**
-
-* Collections.emptyX()方法返回的对象都是**immutable**的，即不可更改，如果对该集合进行增删操作会导致UnsupportedOperationException异常。
-* List转换为数组，直接使用toArray()方法即可，后面参数可以不写。写参数时，如果数组长度比集合长，会将多余的数组元素赋空；如果数组长度比集合短，会自动创建集合长度的数组。
 
 ## List
 
@@ -163,10 +128,6 @@ LinkedHashSet插入、删除速度比HashSet要慢一点，因为它需要维护
 
 这是一个好问题，查看HashSet源码可知，HashSet.add()方法会返回一个boolean来表示该Key之前是否有插入过。而HashMap.add()方法会返回之前该Key插入的Value，如果该Key没有插入过即返回Null。如果HashSet的Value默认值是Null，那就不知道该Key之前是否插入过了。
 
-## EnumSet/EnumMap
-
-在存放枚举类型的时候，效率高于HashSet/HashMap
-
 ## Queue
 
 Queue是保持元素重于处理元素的Collection，通常是按照先进先出的方式安排元素，在队尾插入，队头删除；但优先队列是按值来安排的，不一定是在队尾插入。
@@ -194,6 +155,40 @@ for (int n = 0; n < array.length; n++) {
 
 使用Arrays.fill(type[] a, type val);方法可以快速填充数组。
 
+## 其他
 
+### 集合内部避免返回Null
+
+当一个函数需要返回数组或集合的时候，要避免直接返回Null。这里并不是说不能返回Null，而是返回Null之后需要判空，否则会抛出空指针异常。这样做只是为了让代码更美观简洁。
+有的人会认为返回一个空数组或空集合需要花费时间和空间，其实可以使用公用对象来减少性能影响。
+自己写的接口尽量遵循这个规范，并在接口说明中标明。
+
+```
+public String[] getBooks() {
+    if(book.size() == 0)
+        // 不建议用这样的返回
+        return null;
+    ...
+}
+
+private static final String[] NULL = new String[0];
+public String[] getBooks2() {
+    if(book.size() == 0) 
+        return NULL;
+    ...
+}
+public List<String> getBooks3() {
+    if(book.size() == 0) 
+        return Collections.emptyList();
+        // Collections.emptyMap()
+        // Collections.emptySet();
+    ...
+}
+```
+
+**特别注意：**
+
+* Collections.emptyX()方法返回的对象都是**immutable**的，即不可更改，如果对该集合进行增删操作会导致UnsupportedOperationException异常。
+* List转换为数组，直接使用toArray()方法即可，后面参数可以不写。写参数时，如果数组长度比集合长，会将多余的数组元素赋空；如果数组长度比集合短，会自动创建集合长度的数组。
 
 
