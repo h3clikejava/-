@@ -86,23 +86,36 @@ if(list instanceof RandomAccess) {
 ```
 
 ### foreach
+
 foreach是一种高效的迭代器，其与iterator的区别就是foreach不支持迭代过程中remove对象。因此无论对象是否支持RandomAccess，用foreach迭代效率是最高的。
 
 ## MAP
+
 java中常见的Map有以下四种：
 
 ### HashMap
-速度快，没有顺序，可以存储Null值，非同步
 
-### TreeMap
+速度快，没有顺序，非同步
+
+### TreeMap（不允许Null值）
+
 默认按照Key升序，不允许Null值，非同步
 
-### HashTable
-线程安全的HashMap，不允许Null值，尽量使用Collections.synchronizedMap(HashMap)实现同步。
-
 ### LinkedHashMap
-按照插入顺序排序，允许Null值，非同步。LinkedHashMap继承自HashMap，它在其基础上又在内部增加了一个链表，用以存放元素的插入顺序。
 
+按照插入顺序排序，非同步。LinkedHashMap继承自HashMap，它在其基础上又在内部增加了一个链表，用以存放元素的插入顺序。
+
+### HashTable（不允许Null值）
+
+线程安全的HashMap，尽量使用Collections.synchronizedMap(HashMap)实现同步。
+
+### 其他
+
+另外还有三种专用目的的实现：
+
+1. **EnumMap**：key是enum，用数组存储，速度快。
+2. **WeakHashMap**：当所存储的key在外界不被引用的时候，会从WeakHashMap中删除该键值对。
+3. **IdentityHashMap**：在比较的时候用引用相等（reference-equality）代替对象相等（object-equality），这种结构可以用于保持拓扑的对象图变化，例如序列化。
 
 ## Set
 

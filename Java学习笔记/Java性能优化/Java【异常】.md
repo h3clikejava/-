@@ -79,3 +79,17 @@ class CustomStream extend Stream implements AutoCloseable {
 }
 ```
 
+## throw和throws区别
+
+### throw
+
+用在方法体内，表示抛出异常。
+
+### throws
+
+用在方法声明后面，表示该方法不知道如何处理异常，抛出给方法调用者去处理。另外相比throw，throw是确定会抛出异常，而throws表示可能会抛出异常。
+
+```
+public void test() throws NullPointException {}
+```
+
